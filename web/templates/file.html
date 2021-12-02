@@ -1,0 +1,339 @@
+{% extends 'layout/manage.html' %}
+{% load static %}
+
+{% block title %}{% endblock %}
+
+{% block css %}
+    <style>
+        .panel-default > .panel-heading .function .upload{
+            overflow: hidden;
+        }
+
+        .panel-default > .panel-heading .function .upload input{
+            opacity: 0;
+            position: absolute;
+            top: 83px;
+            width: 76px;
+            right: 116px;
+            overflow: hidden;
+        }
+
+        .upload-progress{
+            position: fixed;
+            bottom: 2px;
+            right: 2px;
+            width: 400px;
+        }
+        .upload-progress .progress-error{
+            color: red;
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="container-fluid">
+        <div class="panel panel-default">
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <a href="{% url 'web:file' project_id=request.project.id %}"><i class="fa fa-home" aria-hidden="true"></i> 文件库</a>
+                {% for url in breadcrumb_list %}
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                    <a href="{% url 'web:file' project_id=request.project.id %}?folder_id={{ url.id }}">{{ url.name }}</a>
+                {% endfor %}
+
+                <div class="function pull-right">
+                    <a class="btn btn-xs btn-success pull-right" href="" data-toggle="modal" data-target="#CreateFolderModalLabel" data-whatever="新建文件夹"><i class="fa fa-plus-circle" aria-hidden="true"></i> 新建文件夹</a>
+                    <div class="btn btn-primary btn-xs upload">
+                        <i class="fa fa-upload" aria-hidden="true"></i> 上传文件
+                        <input type="file" multiple name="uploadFile" id="uploadFile">
+                    </div>
+                </div>
+            </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th class="col-xs-4">名称</th>
+                    <th class="col-xs-2">文件大小</th>
+                    <th class="col-xs-2">更新者</th>
+                    <th class="col-xs-2">更新时间</th>
+                    <th class="col-xs-2">操作</th>
+                </tr>
+            </thead>
+            <tbody id="file">
+            {% for file_object in file_object_list %}
+                {% if file_object.file_type == 2 %}
+                    <tr>
+                        <td><a href="{% url 'web:file' project_id=request.project.id %}?folder_id={{ file_object.id }}"><i class="fa fa-folder" aria-hidden="true"></i> {{ file_object.name }}
+                        </a></td>
+                        <td>-</td>
+                        <td>{{ file_object.update_user }}</td>
+                        <td>{{ file_object.update_datetime }}</td>
+                        <td>
+                            <a href="" class="btn btn-xs btn-default" data-toggle="modal" data-target="#CreateFolderModalLabel" data-whatever="编辑文件夹" data-name="{{ file_object.name }}" data-fid="{{ file_object.id }}"><i class="fa fa-edit" aria-hidden="true"></i></a>
+                            <a href="" class="btn btn-xs btn-danger" data-toggle="modal" data-target="#alertModal" data-fid="{{ file_object.id }}"><i class="fa fa-trash" aria-hidden="true"></i></a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td><i class="fa fa-file" aria-hidden="true"></i> {{ file_object.name }}</td>
+                        <td>{{ file_object.file_size }}</td>
+                        <td>{{ file_object.update_user }}</td>
+                        <td>{{ file_object.update_datetime }}</td>
+                        <td>
+                            <a href="{% url 'web:file_download' project_id=request.project.id %}?fid={{ file_object.id }}" class="btn btn-xs btn-default"><i class="fa fa-download" aria-hidden="true"></i></a>
+{#                            <button name="delete_file" href="{% url 'web:file_delete' project_id=request.project.id %}?fid={{ file_object.id }}" class="btn btn-xs btn-danger"><i class="fa fa-trash" aria-hidden="true"></i></button>#}
+                            <a href="" class="btn btn-xs btn-danger" data-toggle="modal" data-target="#alertModal" data-fid="{{ file_object.id }}"><i class="fa fa-trash" aria-hidden="true"></i></a>
+                        </td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="CreateFolderModalLabel" tabindex="-1" role="dialog" aria-labelledby="CreateFolderModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel"></h4>
+                </div>
+                <div class="modal-body">
+                    <form id="createForm" action="{% url 'web:project_list' %}" method="post" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="fid" id="fid">
+                        {% for field in form %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                <div name="{{ field.id_for_label }}" class="error"></div>
+                            </div>
+                        {% endfor %}
+                    </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                        <button id="createFolder" type="button" class="btn btn-primary">提交</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="alertModal">
+        <div class="modal-dialog" role="document">
+            <div class="alert alert-danger alert-dismissible fade in" role="alert">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4>是否要确定删除？</h4>
+                <p>文件夹中包含的所有的文件都会被删除。</p>
+                <p class="clearfix">
+                    <button type="button" class="btn btn-danger pull-right" data-dismiss="modal">取消</button>
+                    <button id="btnDelete" type="button" class="btn btn-default pull-right">提交</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="uploadProgress" class="upload-progress hide">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <i class="fa fa-cloud-upload" aria-hidden="true"></i> 上传进度
+            </div>
+            <table class="table">
+                <tbody id="progressList">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div class="hide">
+    <table id="progressTemplate">
+        <tr>
+            <td>
+                <div class="name"></div>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-success progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0;">
+                        0%
+                    </div>
+                    <div class="progress-error"></div>
+                </div>
+            </td>
+        </tr>
+    </table>
+    </div>
+
+    <div class="hide">
+        <table id="trTemplate">
+            <tr>
+            <td>
+                <i class="fa fa-file" aria-hidden="true"></i>
+                <span class="name"></span>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td>
+                <a href="" class="btn btn-xs btn-default"><i class="fa fa-download" aria-hidden="true"></i></a>
+{#                <button name="delete_file" href="" class="btn btn-xs btn-danger"><i class="fa fa-trash" aria-hidden="true"></i></button>#}
+                <a href="" class="btn btn-xs btn-danger" data-toggle="modal" data-target="#alertModal" data-fid=""><i class="fa fa-trash" aria-hidden="true"></i></a>
+            </td>
+        </tr>
+        </table>
+    </div>
+
+
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'js/cos-js-sdk-v5.min.js' %}"></script>
+    <script>
+
+        {#$('[name="delete_file"]').click(function () {#}
+        {#    $.get($(this).attr('href'),#}
+        {#        {},#}
+        {#    function (data) {#}
+        {#        if(data.code === 0){#}
+        {#            location.href = location.href;#}
+        {#        }#}
+        {#    })#}
+        {# })#}
+
+        $('#createFolder').click(function () {
+            $('#createForm .error').text('');
+            $.ajax({
+                url: location.href,
+                type: 'POST',
+                data: $('#createForm').serialize(),
+                dataType: 'JSON',
+                success: function (data) {
+                    if(data['code'] === 0){
+                        location.href = location.href;
+                    }else {
+                        $.each(data['msg'], function(k, v){
+                        $('[name="id_' + k + '"]').text(v);
+                    })
+                    }
+                }
+            })
+        })
+
+        $('#CreateFolderModalLabel').on('show.bs.modal', function (event) {
+            $('#createForm')[0].reset();
+            var button = $(event.relatedTarget);
+            var recipient = button.data('whatever');
+            var name = button.data('name');
+            var fid = button.data('fid');
+            var modal = $(this);
+            modal.find('.modal-title').text(recipient);
+            modal.find('#id_name').val(name);
+            modal.find('#fid').val(fid);
+        })
+
+        $('#alertModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var fid = button.data('fid');
+            var modal = $(this);
+            modal.find('#btnDelete').attr('fid', fid);
+        })
+
+        $('#btnDelete').click(function () {
+            $.get('{% url 'web:file_delete' project_id=request.project.id %}',
+                {
+                    fid: $(this).attr('fid')
+                },
+            function (data) {
+                if(data.code === 0){
+                    location.href = location.href;
+                }
+            })
+        })
+
+
+        var cos;
+
+        $('#uploadFile').change(function (){
+            $('#progressList').empty();
+            var files = $(this)[0].files;
+            var fileList = [];
+            $.each(files, function (index, fileObject) {
+                fileList.push({'name': fileObject.name, 'size': fileObject.size});
+            })
+            cos = new COS({
+                getAuthorization: function (option, callback) {
+                    $.post('{% url 'web:cos_credential' project_id=request.project.id %}',
+                        JSON.stringify(fileList),
+                    function (data) {
+                        if(data.code === 0){
+                            var credentials = data.data && data.data.credentials;
+                            callback({
+                                TmpSecretId: credentials.tmpSecretId,
+                                TmpSecretKey: credentials.tmpSecretKey,
+                                XCosSecurityToken: credentials.sessionToken,
+                                StartTime: data.data.startTime,
+                                ExpiredTime: data.data.expiredTime,
+                            });
+                            $('#uploadProgress').removeClass('hide');
+                        }else {
+                            alert(data.error);
+                        }
+                    });
+                }
+            });
+            $.each(files, function (index, fileObject) {
+                var fileName = fileObject.name;
+                var tr = $('#progressTemplate tr').clone();
+                var key = (new Date()).getTime() + '_' + fileName;
+                tr.find('.name').text(fileName);
+                $('#progressList').append(tr);
+                cos.putObject({
+                    Bucket: '{{ request.project.bucket }}',
+                    Region: '{{ request.project.region }}',
+                    Key: key,
+                    StorageClass: 'STANDARD',
+                    Body: fileObject,
+                    onProgress: function (progressData) {
+                        tr.find('.progress-bar').text(progressData.percent * 100 + '%');
+                        tr.find('.progress-bar').css('width', progressData.percent * 100 + '%');
+                    }
+                }, function (err, data) {
+                    console.log(data);
+                    if(data && data.statusCode == 200){
+                        $.post('{% url 'web:file_upload' project_id=request.project.id %}',
+                            {
+                                name: fileName,
+                                key: key,
+                                file_size: fileObject.size,
+                                file_path: data.Location,
+                                parent: '{{ parent_object.id }}',
+                                etag: data.ETag,
+                            },
+                            function (data) {
+                            console.log(data);
+                                if(data.code == 0){
+                                    var newtr = $('#trTemplate').clone();
+                                    newtr.find('td').find('.name').text(data.data.name);
+                                    newtr.find('td').eq(1).text(data.data.file_size);
+                                    newtr.find('td').eq(2).text(data.data.update_user);
+                                    newtr.find('td').eq(3).text(data.data.update_datetime);
+                                    newtr.find('td').eq(4).find('a').eq(0).attr('href', "{% url 'web:file_download' project_id=request.project.id %}?fid=" + data.data.id);
+                                    {#newtr.find('td').eq(4).find('button').attr('href', '{% url 'web:file_delete' project_id=request.project.id %}?fid=' + data.data.id);#}
+                                    newtr.find('td').eq(4).find('a').eq(1).attr('data-fid', data.data.id);
+                                    $('#file').append(newtr.find('tr'));
+                                    tr.remove();
+                                }
+                            }
+                        )
+                    }else {
+                        tr.find('.progress-error').text('上传失败');
+                    }
+                });
+            })
+        })
+    </script>
+{% endblock %}
