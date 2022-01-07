@@ -1,0 +1,8 @@
+{% for i in data %}
+    {% if i.active %}
+        <li class="active"><a href="{{ i.url }}">{{ i.title }}</a></li>
+    {% else %}
+        <li><a href="{{ i.url }}">{{ i.title }}</a></li>
+    {% endif %}
+
+{% endfor %}

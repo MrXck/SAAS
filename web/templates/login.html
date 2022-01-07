@@ -1,0 +1,53 @@
+{% extends 'layout/basic.html' %}
+{% load static %}
+
+{% block title %}用户登录{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'css/account.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="account">
+    <h1 align="center">用户登录</h1>
+    <form action="{% url 'web:login' %}" method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+                {% if field.name == 'code' %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        <div class="clearfix">
+                            <div class="col-xs-7" style="padding-left: 0">{{ field }}</div>
+                            <div class="col-xs-5" style="padding-left: 0">
+                                <img id="image_code" src="{% url 'web:image_code' %}" title="点击更换图片">
+                            </div>
+                        </div>
+                        <div name="{{ field.id_for_label }}" class="error">{{ field.errors.0 }}</div>
+                    </div>
+                {% else %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        <div class="clearfix">
+                            <div class="col-xs-12" style="padding-left: 0">
+                                {{ field }}
+                            </div>
+                        </div>
+                        <div name="{{ field.id_for_label }}" class="error">{{ field.errors.0 }}</div>
+                    </div>
+                {% endif %}
+        {% endfor %}
+        <input type="submit" class="btn btn-success" value="登录">
+        <a class="pull-right" href="{% url 'web:sms_login' %}" style="line-height: 34px">使用手机验证码登录</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    $('#image_code').click(function () {
+        var src = $(this).attr('src');
+        $(this).attr('src', src + '?');
+    })
+</script>
+{% endblock %}
+

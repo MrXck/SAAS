@@ -1,0 +1,324 @@
+{% extends 'layout/manage.html' %}
+{% load static %}
+
+{% block title %}{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'plugin/editor-md/css/editormd.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugin/bootstrap-select-1.13.9/dist/css/bootstrap-select.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugin/select2/css/select2.min.css' %}">
+    <style>
+        .issues-List .number {
+            width: 100px;
+            text-align: center;
+        }
+
+        .issues-List .number a {
+            font-weight: 500;
+            padding: 0 10px;
+        }
+
+        .issues-List .issue .tags {
+            padding: 10px 0;
+        }
+
+        .issues-List .issue .tags span {
+            margin-right: 20px;
+            display: inline-block;
+            font-size: 14px;
+        }
+
+        .issues-List .issue .tags .type {
+            color: white;
+            padding: 1px 5px;
+            border-radius: 5px;
+            background-color: #88d788;
+        }
+
+        .filter-area .item{
+            margin-bottom: 15px;
+        }
+
+        .filter-area .item .title{
+            padding: 5px 0;
+        }
+
+        .filter-area .item .check-list a{
+            text-decoration: none;
+            display: inline-block;
+            min-width: 65px;
+        }
+
+        .filter-area .item .check-list label{
+            font-weight: 200;
+            font-size: 13px;
+            margin-left: 3px;
+        }
+
+        .filter-area .item .check-list a:hover{
+            font-weight: 300;
+        }
+
+        .filter-area .item .check-list .cell{
+            margin-right: 10px;
+        }
+
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid clearfix" style="padding: 20px 0;">
+        <div class="col-sm-3">
+            <div class="panel panel-default">
+                <div class="panel-heading"><i class="fa fa-search"></i> 筛选</div>
+                <div class="panel-body filter-area">
+                    <div class="item">
+                        <div class="title">状态</div>
+                        <div class="check-list">
+                            {% for item in status_filter %}
+                                {{ item }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="title">优先级</div>
+                        <div class="check-list">
+                            {% for item in priority_filter %}
+                                {{ item }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="title">状态</div>
+                        <div class="check-list">
+                            {% for item in issues_type_filter %}
+                                {{ item }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="title">指派者</div>
+                        <div class="check-list">
+                            {% for item in assign %}
+                                {{ item }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div class="title">关注者</div>
+                        <div class="check-list">
+                            {% for item in attention %}
+                                {{ item }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-9">
+            <div class="panel panel-default">
+                <div class="panel-heading"><i class="fa fa-quora"></i> 问题</div>
+                <div class="panel-body">
+                    <a class="btn btn-success btn-sm" id="add" data-toggle="modal" data-target="#addModal">新建问题</a>
+                    <a class="btn btn-primary btn-sm" data-toggle="modal" data-target="#myModal">邀请成员</a>
+                </div>
+                <table class="table">
+                    <tbody class="issues-List">
+                    {% for issues_object in issues_object_list %}
+                        <tr>
+                            <td class="number">
+                                <i class="fa fa-circle text-{{ issues_object.priority }}"></i>
+                                <a target="_blank" href="{% url 'web:issues_detail' project_id=request.project.id issues_id=issues_object.id %}">#{{ issues_object.id }}</a>
+                            </td>
+                            <td class="issue">
+                                <div>
+                                    <a target="_blank" href="{% url 'web:issues_detail' project_id=request.project.id issues_id=issues_object.id %}">{{ issues_object.subject }}</a>
+                                </div>
+                                <div class="tags">
+                                    <span class="type">{{ issues_object.issues_type.title }}</span>
+                                    <span><i class="fa fa-refresh" aria-hidden="true"></i> {{ issues_object.get_status_display }}</span>
+                                    <span><i class="fa fa-user-o" aria-hidden="true"></i> {{ issues_object.creator }}</span>
+                                    {% if issues_object.assign %}
+                                        <span><i class="fa fa-hand-o-right" aria-hidden="true"></i> {{ issues_object.assign }}</span>
+                                    {% endif %}
+                                    {% if issues_object.assign %}
+                                        <span><i class="fa fa-calendar" aria-hidden="true"></i> {{ issues_object.end_date }} 截止</span>
+                                    {% endif %}
+                                        <span><i class="fa fa-clock-o" aria-hidden="true"></i> {{ issues_object.latest_update_datetime }} 更新</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <nav>
+                <ul class="pagination" style="margin-top: 0;">
+                    {{ page_html|safe }}
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="addModal">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">新建问题</h4>
+                </div>
+                <div class="modal-body clearfix" style="padding-right: 40px;">
+                    <form id="addForm" action="" method="post" novalidate>
+                        {% csrf_token %}
+                        {% for field in form %}
+                            {% if field.name == 'desc' %}
+                                <div class="form-group clearfix">
+                                    <label for="{{ field.id_for_label }}" class="control-label col-sm-2">{{ field.label }}</label>
+                                    <div class="col-sm-10">
+                                        <div id="editor">
+                                            {{ field }}
+                                        </div>
+                                        <span name="{{ field.id_for_label }}" class="error">{{ field.errors.0 }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="form-group clearfix">
+                                    <label for="{{ field.id_for_label }}" class="control-label col-sm-2">{{ field.label }}</label>
+                                    <div class="col-sm-10">
+                                        {{ field }}
+                                        <span name="{{ field.id_for_label }}" class="error">{{ field.errors.0 }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                        {% endfor %}
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button id="btnAdd" class="btn btn-primary" type="button">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">邀请成员</h4>
+                </div>
+                <div class="modal-body">
+                    <form id="inviteForm" method="post" novalidate>
+                        {% csrf_token %}
+                        {% for field in invite %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                <span>{% if field.help_text %}（{{ field.help_text }}）{% endif %}</span>
+                                {{ field }}
+                                <div name="{{ field.id_for_label }}" class="error"></div>
+                            </div>
+                        {% endfor %}
+                    </form>
+                    <button id="inviteBtn" class="btn btn-success">生成邀请码</button>
+                    <div class="modal-footer hidden" id="area" style="margin-top: 10px">
+                        <div class="form-group">
+
+                            <div class="col-xs-2" style="padding-right: 0">
+                                <input type="button" class="btn btn-default" value="邀请链接">
+                            </div>
+                            <div class="col-xs-8" style="padding-left: 0">
+                                <input type="text" class="form-control" id="inviteUrl">
+                            </div>
+                            <div class="col-xs-2">
+                                <input type="button" class="btn btn-primary" value="复制链接" id="btnCopyUrl">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'plugin/editor-md/editormd.min.js' %}"></script>
+    <script src="{% static 'plugin/bootstrap-select-1.13.9/dist/js/bootstrap-select.min.js' %}"></script>
+    <script src="{% static 'plugin/select2/js/select2.min.js' %}"></script>
+    <script src="{% static 'plugin/select2/js/i18n/zh-CN.js' %}"></script>
+    <script>
+        $('#addModal').on('shown.bs.modal', function () {
+            $('#addForm').find('.error').empty();
+            initEditorMd();
+        })
+
+        function initEditorMd() {
+            editormd('editor', {
+                placeholder: '请输入内容',
+                height: 200,
+                path: "{% static 'plugin/editor-md/lib/' %}",
+                imageUpload: true,
+                imageFormats: ['jpg', 'jpeg', 'png', 'gif'],
+                imageUploadURL: "{% url 'web:wiki_upload' project_id=request.project.id %}"
+             })
+        }
+
+        $('#btnAdd').click(function () {
+            $.post("{% url 'web:issues' project_id=request.project.id %}",
+                $('#addForm').serialize(),
+                function (data) {
+                    if (data['code'] === 0) {
+                        location.href = location.href;
+                    } else {
+                        $.each(data['msg'], function (k, v) {
+                            $('[name="id_' + k + '"]').text(v);
+                        })
+                    }
+                }
+            )
+        })
+
+        $('.filter-area').find(':checkbox').click(function () {
+            location.href = $(this).parent().attr('href');
+        })
+
+        $('.select2').select2({}).on('select2:select', function (e) {
+            location.href = e.params.data.id;
+        }).on('select2:unselect', function (e) {
+            location.href = e.params.data.id;
+        })
+
+        $('#inviteBtn').click(function () {
+            $('.error').empty();
+            $.post("{% url 'web:invite_url' project_id=request.project.id %}",
+                $('#inviteForm').serialize(),
+                function (data) {
+                    if (data['code'] === 0) {
+                        $('#area').removeClass('hidden');
+                        $('#inviteUrl').val(data.data);
+                    } else {
+                        $.each(data['msg'], function (k, v) {
+                            $('[name="id_' + k + '"]').text(v);
+                        })
+                    }
+                }
+            )
+        })
+
+        $('#btnCopyUrl').click(function () {
+            var textInput = $('#inviteUrl')[0];
+            textInput.select();
+            document.execCommand('Copy');
+            alert('复制成功');
+        })
+
+    </script>
+{% endblock %}

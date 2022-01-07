@@ -1,0 +1,123 @@
+{% extends 'layout/manage.html' %}
+{% load static %}
+
+{% block title %}
+    项目管理
+{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'plugin/editor-md/css/editormd.min.css' %}">
+    <style>
+    .panel-default{
+        margin-top: 10px;
+    }
+
+    .panel-body{
+        padding: 0;
+    }
+
+    .title-list{
+        border-right: 1px solid #dddddd;
+        min-height: 500px;
+    }
+
+    .content{
+        border-left: 1px solid #dddddd;
+        min-height: 600px;
+        margin-left: -1px;
+    }
+
+    .title-list ul{
+        padding-left: 15px;
+    }
+
+    .title-list ul a{
+        display: block;
+        padding: 5px 0;
+    }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <a href=""><i class="fa fa-book" aria-hidden="true"></i> wiki文档</a>
+                {% if wiki_object %}
+                    <a href="{% url 'web:wiki_delete' project_id=request.project.id %}?wiki_id={{ wiki_object.id }}" class="btn-xs btn-danger pull-right"><i class="fa fa-plus-circle"></i> 删除</a>
+                    <a href="{% url 'web:wiki_edit' project_id=request.project.id %}?wiki_id={{ wiki_object.id }}" class="btn-xs btn-primary pull-right"><i class="fa fa-plus-circle"></i> 编辑</a>
+                {% endif %}
+                <a href="{% url 'web:wiki_add' project_id=request.project.id %}" class="btn-xs btn-success pull-right"><i class="fa fa-plus-circle"></i> 新建</a>
+            </div>
+            <div class="panel-body">
+                <div class="col-xs-3 title-list">
+                    <ul id="catalog">
+
+                    </ul>
+                </div>
+                <div class="col-xs-9 content">
+                    <form action="" method="post" novalidate>
+                    {% csrf_token %}
+                        {% for field in form %}
+                            {% if field.name == 'content' %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    <div id="editor">
+                                        {{ field }}
+                                    </div>
+                                    <span class="error">{{ field.errors.0 }}</span>
+                                </div>
+                            {% else %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {{ field }}
+                                    <span class="error">{{ field.errors.0 }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        <input type="submit" class="btn btn-success" value="提交">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'plugin/editor-md/editormd.min.js' %}"></script>
+    <script>
+    var wiki_detail = '{% url 'web:wiki' project_id=request.project.id %}'
+    $.post('{% url 'web:wiki_catalog' project_id=request.project.id %}',
+        {
+            'csrfmiddlewaretoken': "{{ csrf_token }}"
+        },
+        function (data) {
+            var ul = $('#catalog');
+            $.each(data['data'], function (index, item) {
+                if(!item.parent_id){
+                    var li = $('<li>').attr('id', 'id_' + item.id).append($('<a>').attr('href', wiki_detail + '?wiki_id=' + item.id).text(item.title)).append($('<ul>'));
+                    ul.append(li);
+                }
+            })
+            $.each(data['data'], function (index, item) {
+                if(item.parent_id){
+                    var li = $('<li>').attr('id', 'id_' + item.id).append($('<a>').attr('href', wiki_detail + '?wiki_id=' + item.id).text(item.title)).append($('<ul>'));
+                    $('#id_' + item.parent_id).children('ul').append(li);
+                }
+            })
+        }
+    )
+
+    $(function () {
+        editormd('editor', {
+            placeholder: '请输入内容',
+            height: 500,
+            path: "{% static 'plugin/editor-md/lib/' %}",
+            imageUpload: true,
+            imageFormats: ['jpg', 'jpeg', 'png', 'gif'],
+            imageUploadURL: "{% url 'web:wiki_upload' project_id=request.project.id %}"
+         })
+
+    })
+    </script>
+{% endblock %}

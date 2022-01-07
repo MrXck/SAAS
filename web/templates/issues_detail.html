@@ -1,0 +1,302 @@
+{% extends 'layout/manage.html' %}
+{% load static %}
+
+{% block title %}{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'plugin/editor-md/css/editormd.min.css' %}">
+    <link rel="stylesheet" href="{% static 'plugin/bootstrap-select-1.13.9/dist/css/bootstrap-select.min.css' %}">
+    <style>
+
+        .comment-area .item {
+            margin-top: 20px;
+        }
+
+        .comment-area .left-avatar {
+            float: left;
+            margin-right: 10px;
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background-color: #304659;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+        }
+
+        .comment-area .right-info {
+            padding-left: 35px;
+        }
+
+        .comment-area .right-info .desc .msg {
+            display: inline-block;
+            padding-right: 20px;
+            color: #8c8c8c;
+        }
+
+        .comment-area .child {
+            padding-left: 55px;
+        }
+
+        .comment-area .error-msg {
+            color: red;
+        }
+
+        .comment-area .reply-user {
+            display: inline-block;
+            background-color: #ddd;
+            color: black;
+            padding: 6px 8px;
+            margin-left: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .editormd-fullscreen {
+            z-index: 1001;
+        }
+    </style>
+
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid clearfix" style="padding: 20px 0;">
+        <div class="col-sm-7">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <i class="fa fa-edit"></i> 更新问题
+                    <button id="btnEdit" class="btn btn-xs btn-primary pull-right" type="button">提交</button>
+                </div>
+                <div class="panel-body">
+                    <form id="editForm" action="" method="post" novalidate>
+                        {% csrf_token %}
+                        {% for field in form %}
+                            {% if field.name == 'desc' %}
+                                <div class="form-group clearfix">
+                                    <label for="{{ field.id_for_label }}" class="control-label col-sm-2">{{ field.label }}</label>
+                                    <div class="col-sm-10">
+                                        <div id="editor">
+                                            {{ field }}
+                                        </div>
+                                        <span name="{{ field.id_for_label }}" class="error">{{ field.errors.0 }}</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="form-group clearfix">
+                                    <label for="{{ field.id_for_label }}" class="control-label col-sm-2">{{ field.label }}</label>
+                                    <div class="col-sm-10">
+                                        {{ field }}
+                                        <span name="{{ field.id_for_label }}" class="error">{{ field.errors.0 }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                        {% endfor %}
+                    </form>
+                </div>
+
+            </div>
+        </div>
+        <div class="col-sm-5">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <i class="fa fa-search" aria-hidden="true"></i> 操作记录
+                </div>
+                <div class="panel-body comment-area">
+
+                    <div class="comment-list">
+
+
+                    </div>
+
+                    <hr/>
+                    <div class="comment-text" id="commentText">
+
+                        <div class="form-group">
+                            <textarea id="content" rows="6" class="form-control"
+                                      placeholder="请输入要回复的内容"></textarea>
+                            <span name="id_content" class="error"></span>
+                        </div>
+
+                        <input class="btn btn-primary" type="button" id="btnSubmit" value="提 交">
+                        <div class="reply-user hide" id="replyUser">
+                            回复 <span></span>
+                            <i class="fa fa-times-circle" aria-hidden="true" style="color: #9d9d9d;"></i>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hide" id="recordTemplate">
+        <div class="item clearfix">
+            <div class="left-avatar"></div>
+            <div class="right-info">
+                <pre></pre>
+                <div class="desc">
+                    <div class="msg">
+                        <i class="fa fa-bullhorn" aria-hidden="true"></i>
+                        <span class="type"></span>
+                    </div>
+                    <div class="msg">
+                        <i class="fa fa-user-o" aria-hidden="true"></i>
+                        <span class="user"></span>
+                    </div>
+                    <div class="msg">
+                        <i class="fa fa-clock-o" aria-hidden="true"></i>
+                        <span class="date"></span>
+                    </div>
+
+                    <a href="#commentText" class="reply">
+                        <i class="fa fa-commenting-o" aria-hidden="true"></i> 回复
+                    </a>
+
+                </div>
+            </div>
+            <div class="child">
+
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+
+{% block js %}
+    <script src="{% static 'plugin/editor-md/editormd.min.js' %}"></script>
+    <script src="{% static 'plugin/bootstrap-select-1.13.9/dist/js/bootstrap-select.min.js' %}"></script>
+    <script>
+        $('#addModal').on('shown.bs.modal', function () {
+            $('#editForm').find('.error').empty();
+
+        })
+
+        EDITOR = editormd('editor', {
+            placeholder: '请输入内容',
+            height: 200,
+            path: "{% static 'plugin/editor-md/lib/' %}",
+            imageUpload: true,
+            imageFormats: ['jpg', 'jpeg', 'png', 'gif'],
+            imageUploadURL: "{% url 'web:wiki_upload' project_id=request.project.id %}",
+            toolbarIcons: function(){
+                return ['bold', 'hr', 'del', 'italic', 'quote', '|', 'image', 'preview', 'watch', 'fullscreen', "||", 'save']
+            },
+            toolbarCustomIcons: {
+                save: "<input type='button' value='保存' class='btn btn-success btn-sm' onclick='saveDesc();'>"
+             },
+            onload:function () {
+                this.previewing();
+            }
+         })
+
+        $('#btnEdit').click(function (){
+            $.post(location.href,
+                $('#editForm').serialize(),
+                function (data) {
+                    if (data['code'] === 0) {
+                        location.href = "{% url 'web:issues_detail' project_id=request.project.id issues_id=issues_object.id %}";
+                    } else {
+                        $.each(data['msg'], function (k, v) {
+                            $('[name="id_' + k + '"]').text(v);
+                        })
+                    }
+                }
+            )
+        })
+
+        $.get("{% url 'web:issues_record' project_id=request.project.id issues_id=issues_object.id %}",
+            {},
+            function (data) {
+                if(data.code === 0){
+                    $.each(data.data, function (k, v) {
+                        createRecordNode(v);
+                    })
+                }
+            }
+        )
+
+        function createRecordNode(nodeDict) {
+            var $item = $("#recordTemplate").find('.item').clone();
+            $item.find('.left-avatar').html(nodeDict.creator[0].toUpperCase());
+            $item.find('pre').html(nodeDict.content);
+            $item.find('.user').html(nodeDict.creator);
+            $item.find('.type').html(nodeDict.reply_type_text);
+            $item.find('.date').html(nodeDict.datetime);
+            $item.attr({id: nodeDict.id, username: nodeDict.creator});
+            if (nodeDict.parent_id) {
+                $('#' + nodeDict.parent_id).children('.child').append($item);
+            } else {
+                $('.comment-list').append($item);
+            }
+        }
+
+
+        $('.comment-list').on('click', '.reply', function () {
+            var $item = $(this).parent().parent().parent();
+            var id = $item.attr('id');
+            var username = $item.attr('username');
+            $('#replyUser').removeClass('hide').attr('parent-id', id).children('span').text(username);
+        })
+
+        $('#replyUser').click(function () {
+            $(this).addClass('hide').removeAttr('parent-id').children('span').text('');
+        })
+
+
+        $('#btnSubmit').click(function () {
+            $("#commentText .error-msg").text("");
+            $.ajax({
+                url: "{% url 'web:issues_record' project_id=request.project.id issues_id=issues_object.id %}",
+                type: "POST",
+                data: {content: $('#content').val(), reply: $("#replyUser").attr('parent-id')},
+                dataType: "JSON",
+                success: function (data) {
+                    if (data['code'] === 0) {
+                        createRecordNode(data.data);
+                        // 输入的内容清空
+                        $('#content').val('');
+                        $('#replyUser').addClass('hide').removeAttr('parent-id').children('span').text("");
+                    } else {
+                        $.each(data['msg'], function (k, v) {
+                            $('[name="id_' + k + '"]').text(v);
+                        })
+                    }
+                }
+            })
+        })
+
+        $('#editForm').find('.form-control').change(function () {
+            var data = {};
+            data.name = $(this).attr('name');
+            data.value = $(this).val();
+            $('[name="id_' + $(this).attr('name') + '"]').text('');
+            postDict(data);
+        })
+
+        function saveDesc() {
+            var data = {};
+            data.name = 'desc';
+            data.value = EDITOR.getValue();
+            postDict(data);
+        }
+
+        function postDict(data){
+            $.post("{% url 'web:issues_change' project_id=request.project.id issues_id=issues_object.id %}",
+                JSON.stringify(data),
+            function (data) {
+                if (data['code'] === 0) {
+                    createRecordNode(data.data);
+                } else {
+                    $.each(data['msg'], function (k, v) {
+                        $('[name="id_' + k + '"]').text(v);
+                    })
+                }
+             })
+        }
+
+    </script>
+{% endblock %}
