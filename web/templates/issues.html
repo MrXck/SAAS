@@ -301,7 +301,6 @@
             $.post("{% url 'web:invite_url' project_id=request.project.id %}",
                 $('#inviteForm').serialize(),
                 function (data) {
-                    console.log(data);
                     if (data['code'] === 0) {
                         $('#area').removeClass('hidden');
                         $('#inviteUrl').val(data.data);
