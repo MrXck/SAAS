@@ -15,7 +15,7 @@ class UserInfoModelForm(forms.ModelForm):
                                    'max_length': '密码长度不能大于32',
                                }, max_length=32)
     confirm_password = forms.CharField(label='重复密码', widget=forms.PasswordInput())
-    code = forms.CharField(label='验证码')
+    code = forms.CharField(label='验证码', required=False)
     mobile_phone = forms.CharField(label='手机号', validators=[RegexValidator(r'^1[0-9]{10}$', '请输入正确的手机号')])
 
     class Meta:
@@ -113,7 +113,7 @@ class SmsLoginForm(forms.Form):
             field.widget.attrs['placeholder'] = f'请输入{field.label}'
 
     def clean_code(self):
-        mobile_phone = self.cleaned_data.get('mobile_phone')
+        mobile_phone = self.cleaned_data.get('mobile_phone').mobile_phone
         code = self.cleaned_data.get('code').strip()
         result = settings.REDIS.get(mobile_phone)
         if not result:
@@ -123,7 +123,7 @@ class SmsLoginForm(forms.Form):
         return code
 
     def clean_mobile_phone(self):
-        mobile_phone = self.cleaned_data.get('mobile_phone').mobile_phone
+        mobile_phone = self.cleaned_data.get('mobile_phone')
         user_object = models.UserInfo.objects.filter(mobile_phone=mobile_phone).first()
         if not user_object:
             raise ValidationError('手机号不存在')

@@ -84,8 +84,7 @@
                 dataType: 'JSON',
                 success: function (data) {
                     if(data['code'] == 0){
-                        {#location.href = data.data;#}
-                        console.log(data);
+                        location.href = data.data;
                     }else {
                         $.each(data['msg'], function(k, v){
                         $('[name="id_' + k + '"]').text(v);

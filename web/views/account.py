@@ -72,7 +72,7 @@ def sms_login(request):
         return render(request, 'sms_login.html', {'form': form})
     form = SmsLoginForm(request.POST)
     if form.is_valid():
-        request.session['user_id'] = form.cleaned_data.get('password').id
+        request.session['user_id'] = form.cleaned_data.get('mobile_phone').id
         request.session.set_expiry(60 * 60 * 24 * 14)
         return JsonResponse({'code': 0, 'data': reverse('web:index')})
     return JsonResponse({'code': 2, 'msg': form.errors})
