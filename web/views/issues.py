@@ -266,7 +266,7 @@ def invite_join(request, code):
     invite_object = models.ProjectInvite.objects.filter(code=code).first()
     if invite_object:
         now = datetime.datetime.now()
-        if request.tracer == request.project.creator or models.ProjectUser.objects.filter(project_id=invite_object.project_id, user=request.tracer):
+        if request.tracer == invite_object.project.creator or models.ProjectUser.objects.filter(project_id=invite_object.project_id, user=request.tracer):
             return render(request, 'invite_join.html', {'error': '你已经在这个项目当中了'})
         max_transaction = models.Transaction.objects.filter(user=invite_object.project.creator).order_by('-id').first()
         if max_transaction.price_policy.category == 1:
